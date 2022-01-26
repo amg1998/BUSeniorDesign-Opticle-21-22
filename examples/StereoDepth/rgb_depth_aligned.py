@@ -3,7 +3,7 @@
 import cv2
 import numpy as np
 import depthai as dai
-
+import open3d as o3d
 # Optional. If set (True), the ColorCamera is downscaled from 1080p to 720p.
 # Otherwise (False), the aligned depth is automatically upscaled to 1080p
 downscaleColor = True
@@ -78,7 +78,7 @@ with dai.Device(pipeline) as device:
 
         if latestPacket["rgb"] is not None:
             frameRgb = latestPacket["rgb"].getCvFrame()
-            cv2.imshow("rgb", frameRgb)
+            # cv2.imshow("rgb", frameRgb)
 
         if latestPacket["depth"] is not None:
             frameDepth = latestPacket["depth"].getFrame()
@@ -88,7 +88,7 @@ with dai.Device(pipeline) as device:
             # Optional, apply false colorization
             if 1: frameDepth = cv2.applyColorMap(frameDepth, cv2.COLORMAP_HOT)
             frameDepth = np.ascontiguousarray(frameDepth)
-            cv2.imshow("depth", frameDepth)
+            # cv2.imshow("depth", frameDepth)
 
         # Blend when both received
         if frameRgb is not None and frameDepth is not None:
@@ -98,6 +98,12 @@ with dai.Device(pipeline) as device:
             # TODO add a slider to adjust blending ratio
             blended = cv2.addWeighted(frameRgb, 0.6, frameDepth, 0.4 ,0)
             cv2.imshow("rgb-depth", blended)
+            # cv2.imwrite("rgbd1.png",blended)
+            #----Point Cloud-----
+            pcd = o3d.create_point_cloud_from_rgbd_image(blended, pinhole_camera_intrinsic)
+            pcd.transform([[1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
+            cv2.imshow("pcd", pcd)
+            # draw_geometries([pcd])
             frameRgb = None
             frameDepth = None
 
