@@ -67,21 +67,34 @@ while True:
 
                     pcl_converter = PointCloudVisualizer(path)
                 pcd = pcl_converter.rgbd_to_projection(median, right)
-                pcd_p = o3d.geometry.PointCloud()
-                xyz = numpy.asarray([[0,0,0],[2,2,2]])
-                pcd_p.points = o3d.utility.Vector3dVector(xyz)
-                pcd_p.paint_uniform_color([1,0,0])
+                pcd_x = o3d.geometry.PointCloud()
+                pcd_y = o3d.geometry.PointCloud()
+                pcd_z = o3d.geometry.PointCloud()
+                x_arr = numpy.asarray([[0,0,0],[2,0,0]])
+                y_arr = numpy.asarray([[0,0,0],[0,2,0]])
+                z_arr = numpy.asarray([[0,0,0],[0,0,2]])
+                pcd_x.points = o3d.utility.Vector3dVector(x_arr)
+                pcd_x.points = o3d.utility.Vector3dVector(y_arr)
+                pcd_x.points = o3d.utility.Vector3dVector(z_arr)
+                pcd_x.paint_uniform_color([1,0,0])
+                pcd_x.paint_uniform_color([0,1,0])
+                pcd_x.paint_uniform_color([0,0,1])
                 # print(pcd.points)
                 # pcd.points = pcd.points[42867:128602][42867:128602][42867:128602]
                 if not isstarted:
-                	vis.add_geometry(pcd)
-                	vis.add_geometry(pcd_p)
-                	isstarted = True                	
+                    vis.add_geometry(pcd)
+                    vis.add_geometry(pcd_x)
+                    vis.add_geometry(pcd_y)
+                    vis.add_geometry(pcd_z)
+                    isstarted = True       
+                             	
                 else:
-                	vis.update_geometry(pcd)
-                	vis.update_geometry(pcd_p)
-                	vis.poll_events()
-                	vis.update_renderer()
+                    vis.update_geometry(pcd)
+                    vis.update_geometry(pcd_x)
+                    vis.update_geometry(pcd_y)
+                    vis.update_geometry(pcd_z)
+                    vis.poll_events()
+                    vis.update_renderer()
 
                 # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
                 # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
