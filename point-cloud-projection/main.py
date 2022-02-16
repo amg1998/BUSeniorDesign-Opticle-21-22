@@ -70,9 +70,12 @@ while True:
                 pcd_x = o3d.geometry.PointCloud()
                 pcd_y = o3d.geometry.PointCloud()
                 pcd_z = o3d.geometry.PointCloud()
-                x_arr = numpy.asarray([[0,0,0],[2,0,0]])
-                y_arr = numpy.asarray([[0,0,0],[0,2,0]])
-                z_arr = numpy.asarray([[0,0,0],[0,0,2]])
+		#red points
+                x_arr = numpy.asarray([[0,0,0],[2,0,0]]) 
+		# blue points
+                y_arr = numpy.asarray([[0,0,0],[0,2,0]]) 
+		# green points
+                z_arr = numpy.asarray([[0,0,0],[0,0,2]]) 
                 pcd_x.points = o3d.utility.Vector3dVector(x_arr)
                 pcd_x.points = o3d.utility.Vector3dVector(y_arr)
                 pcd_x.points = o3d.utility.Vector3dVector(z_arr)
