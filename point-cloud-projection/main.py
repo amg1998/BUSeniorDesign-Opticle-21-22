@@ -41,9 +41,11 @@ while True:
     # pcd_x = o3d.geometry.PointCloud()
     # pcd_y = o3d.geometry.PointCloud()
     # pcd_z = o3d.geometry.PointCloud()
-    pcd_pfront = o3d.geometry.PointCloud()
-    pcd_pback = o3d.geometry.PointCloud()
-    pcd_pmid = o3d.geometry.PointCloud()
+
+    #make box with dots
+    # pcd_pfront = o3d.geometry.PointCloud()
+    # pcd_pback = o3d.geometry.PointCloud()
+    # pcd_pmid = o3d.geometry.PointCloud()
 
     # #red points
     # x_arr = numpy.asarray([[0,0,0],[2,0,0]]) 
@@ -57,16 +59,24 @@ while True:
     # pcd_x.paint_uniform_color([1,0,0])
     # pcd_y.paint_uniform_color([0,1,0])
     # pcd_z.paint_uniform_color([0,0,1])
-    cube_pfront = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,1.07,0.7],[1,1.07,0.7],[0.5,0,0.7],[0.5,2.14,0.7]])
-    cube_pback = numpy.asarray([[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2],[0,1.07,2],[1,1.07,2],[0.5,0,2],[0.5,2.14,2]])
-    cube_pmid = numpy.asarray([[0,0,1.35],[1,0,1.35],[0,2.14,1.35],[1,2.14,1.35],[0,1.07,1.35],[1,1.07,1.35],[0.5,0,1.35],[0.5,2.14,1.35]])
 
-    pcd_pmid.points = o3d.utility.Vector3dVector(cube_pmid)
-    pcd_pfront.points = o3d.utility.Vector3dVector(cube_pfront)
-    pcd_pback.points = o3d.utility.Vector3dVector(cube_pback)
-    pcd_pfront.paint_uniform_color([1,0,0])
-    pcd_pback.paint_uniform_color([0,1,0])
-    pcd_pmid.paint_uniform_color([0,0,1])
+    #to get prism
+    corners = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2]])
+    bounds = corners.astype("float64")
+    bounds = o3d.utility.Vector3dVector(bounds)
+    oriented_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(bounds)
+    
+    
+    #to make box with dots
+    # cube_pfront = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,1.07,0.7],[1,1.07,0.7],[0.5,0,0.7],[0.5,2.14,0.7]])
+    # cube_pback = numpy.asarray([[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2],[0,1.07,2],[1,1.07,2],[0.5,0,2],[0.5,2.14,2]])
+    # cube_pmid = numpy.asarray([[0,0,1.35],[1,0,1.35],[0,2.14,1.35],[1,2.14,1.35],[0,1.07,1.35],[1,1.07,1.35],[0.5,0,1.35],[0.5,2.14,1.35]])
+    # pcd_pmid.points = o3d.utility.Vector3dVector(cube_pmid)
+    # pcd_pfront.points = o3d.utility.Vector3dVector(cube_pfront)
+    # pcd_pback.points = o3d.utility.Vector3dVector(cube_pback)
+    # pcd_pfront.paint_uniform_color([1,0,0])
+    # pcd_pback.paint_uniform_color([0,1,0])
+    # pcd_pmid.paint_uniform_color([0,0,1])
 
     for packet in data_packets:
         if packet.stream_name == "right":
@@ -96,16 +106,20 @@ while True:
 
                     pcl_converter = PointCloudVisualizer(path)
                 pcd = pcl_converter.rgbd_to_projection(median, right)
-                # print(pcd.points)
-                # pcd.points = pcd.points[42867:128602][42867:128602][42867:128602]
+
+                #to get points within bounding box
+                num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
+                # cropped_pcd = pcd.crop(oriented_bounding_box)
+
                 if not isstarted:
                     vis.add_geometry(pcd)
                     # vis.add_geometry(pcd_x)
                     # vis.add_geometry(pcd_y)
                     # vis.add_geometry(pcd_z)
-                    vis.add_geometry(pcd_pback)
-                    vis.add_geometry(pcd_pfront)
-                    vis.add_geometry(pcd_pmid)
+                    vis.add_geometry(oriented_bounding_box)
+                    # vis.add_geometry(pcd_pback)
+                    # vis.add_geometry(pcd_pfront)
+                    # vis.add_geometry(pcd_pmid)
                     isstarted = True       
                              	
                 else:
@@ -113,12 +127,14 @@ while True:
                     # vis.update_geometry(pcd_x)
                     # vis.update_geometry(pcd_y)
                     # vis.update_geometry(pcd_z)
-                    vis.update_geometry(pcd_pback)
-                    vis.update_geometry(pcd_pmid)
-                    vis.update_geometry(pcd_pfront)
+                    # vis.update_geometry(pcd_pback)
+                    # vis.update_geometry(pcd_pmid)
+                    # vis.update_geometry(pcd_pfront)
+                    vis.update_geometry(oriented_bounding_box)
                     vis.poll_events()
                     vis.update_renderer()
 
+                print("num_pts: ", len(num_pts))
                 # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
                 # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
                 # print("Z", numpy.shape(numpy.asarray(pcd.points)[:,2]))
