@@ -38,6 +38,35 @@ vis.create_window()
 isstarted = False
 while True:
     data_packets = pipeline.get_available_data_packets()
+    # pcd_x = o3d.geometry.PointCloud()
+    # pcd_y = o3d.geometry.PointCloud()
+    # pcd_z = o3d.geometry.PointCloud()
+    pcd_pfront = o3d.geometry.PointCloud()
+    pcd_pback = o3d.geometry.PointCloud()
+    pcd_pmid = o3d.geometry.PointCloud()
+
+    # #red points
+    # x_arr = numpy.asarray([[0,0,0],[2,0,0]]) 
+    # # blue points
+    # y_arr = numpy.asarray([[0,0,0],[0,2,0]]) 
+    # # green points
+    # z_arr = numpy.asarray([[0,0,0],[0,0,2]]) 
+    # pcd_x.points = o3d.utility.Vector3dVector(x_arr)
+    # pcd_y.points = o3d.utility.Vector3dVector(y_arr)
+    # pcd_z.points = o3d.utility.Vector3dVector(z_arr)
+    # pcd_x.paint_uniform_color([1,0,0])
+    # pcd_y.paint_uniform_color([0,1,0])
+    # pcd_z.paint_uniform_color([0,0,1])
+    cube_pfront = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,1.07,0.7],[1,1.07,0.7],[0.5,0,0.7],[0.5,2.14,0.7]])
+    cube_pback = numpy.asarray([[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2],[0,1.07,2],[1,1.07,2],[0.5,0,2],[0.5,2.14,2]])
+    cube_pmid = numpy.asarray([[0,0,1.35],[1,0,1.35],[0,2.14,1.35],[1,2.14,1.35],[0,1.07,1.35],[1,1.07,1.35],[0.5,0,1.35],[0.5,2.14,1.35]])
+
+    pcd_pmid.points = o3d.utility.Vector3dVector(cube_pmid)
+    pcd_pfront.points = o3d.utility.Vector3dVector(cube_pfront)
+    pcd_pback.points = o3d.utility.Vector3dVector(cube_pback)
+    pcd_pfront.paint_uniform_color([1,0,0])
+    pcd_pback.paint_uniform_color([0,1,0])
+    pcd_pmid.paint_uniform_color([0,0,1])
 
     for packet in data_packets:
         if packet.stream_name == "right":
@@ -67,35 +96,26 @@ while True:
 
                     pcl_converter = PointCloudVisualizer(path)
                 pcd = pcl_converter.rgbd_to_projection(median, right)
-                pcd_x = o3d.geometry.PointCloud()
-                pcd_y = o3d.geometry.PointCloud()
-                pcd_z = o3d.geometry.PointCloud()
-		#red points
-                x_arr = numpy.asarray([[0,0,0],[2,0,0]]) 
-		# blue points
-                y_arr = numpy.asarray([[0,0,0],[0,2,0]]) 
-		# green points
-                z_arr = numpy.asarray([[0,0,0],[0,0,2]]) 
-                pcd_x.points = o3d.utility.Vector3dVector(x_arr)
-                pcd_x.points = o3d.utility.Vector3dVector(y_arr)
-                pcd_x.points = o3d.utility.Vector3dVector(z_arr)
-                pcd_x.paint_uniform_color([1,0,0])
-                pcd_x.paint_uniform_color([0,1,0])
-                pcd_x.paint_uniform_color([0,0,1])
                 # print(pcd.points)
                 # pcd.points = pcd.points[42867:128602][42867:128602][42867:128602]
                 if not isstarted:
                     vis.add_geometry(pcd)
-                    vis.add_geometry(pcd_x)
-                    vis.add_geometry(pcd_y)
-                    vis.add_geometry(pcd_z)
+                    # vis.add_geometry(pcd_x)
+                    # vis.add_geometry(pcd_y)
+                    # vis.add_geometry(pcd_z)
+                    vis.add_geometry(pcd_pback)
+                    vis.add_geometry(pcd_pfront)
+                    vis.add_geometry(pcd_pmid)
                     isstarted = True       
                              	
                 else:
                     vis.update_geometry(pcd)
-                    vis.update_geometry(pcd_x)
-                    vis.update_geometry(pcd_y)
-                    vis.update_geometry(pcd_z)
+                    # vis.update_geometry(pcd_x)
+                    # vis.update_geometry(pcd_y)
+                    # vis.update_geometry(pcd_z)
+                    vis.update_geometry(pcd_pback)
+                    vis.update_geometry(pcd_pmid)
+                    vis.update_geometry(pcd_pfront)
                     vis.poll_events()
                     vis.update_renderer()
 
