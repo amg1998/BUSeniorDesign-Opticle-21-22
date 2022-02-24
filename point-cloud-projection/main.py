@@ -61,7 +61,10 @@ while True:
     # pcd_z.paint_uniform_color([0,0,1])
 
     #to get prism
-    corners = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2]])
+    corners = numpy.asarray([[-0.5,0,0.7],[0.5,0,0.7],[0.5,2.14,0.7],[-0.5,2.14,0.7],[0.5,0,2],[0.5,0,2],[0.5,2.14,2],[-0.5,2.14,2]])
+    # corners = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2]])
+    # moved to the left 
+    # corners = numpy.asarray([[-1,0,0.7],[0,0,0.7],[0,2.14,0.7],[-1,2.14,0.7],[-1,0,2],[0,0,2],[0,2.14,2],[-1,2.14,2]])
     bounds = corners.astype("float64")
     bounds = o3d.utility.Vector3dVector(bounds)
     oriented_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(bounds)
