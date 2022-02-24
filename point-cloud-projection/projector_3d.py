@@ -12,15 +12,15 @@ class PointCloudVisualizer():
             # print()
         self.pinhole_camera_intrinsic = o3d.io.read_pinhole_camera_intrinsic(intrinsic_file)
 
-        # self.pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic()
-        # self.pinhole_camera_intrinsic.intrinsic_matrix = [[991.4810956, 0, 642.01482428],
-        #                                                   [ 0, 990.22665919, 362.21332587],
-        #                                                   [0, 0, 1]]
+        self.pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic()
+        self.pinhole_camera_intrinsic.intrinsic_matrix = [[991.4810956, 0, 642.01482428],
+                                                          [ 0, 990.22665919, 362.21332587],
+                                                          [0, 0, 1]]
 
-        if self.enableViz:
-            self.vis = o3d.visualization.Visualizer()
-            self.vis.create_window()
-            self.isstarted = False
+        # if self.enableViz:
+        #     self.vis = o3d.visualization.Visualizer()
+        #     self.vis.create_window()
+        #     self.isstarted = False
 
 
     def rgbd_to_projection(self, depth_map, rgb):
