@@ -39,6 +39,7 @@ isstarted = False
 while True:
     data_packets = pipeline.get_available_data_packets()
     # pcd_x = o3d.geometry.PointCloud()
+
     # pcd_y = o3d.geometry.PointCloud()
     # pcd_z = o3d.geometry.PointCloud()
 
@@ -61,13 +62,45 @@ while True:
     # pcd_z.paint_uniform_color([0,0,1])
 
     #to get prism
-    corners = numpy.asarray([[-0.5,0,0.7],[0.5,0,0.7],[0.5,2.14,0.7],[-0.5,2.14,0.7],[0.5,0,2],[0.5,0,2],[0.5,2.14,2],[-0.5,2.14,2]])
+    # was at the border work 0.7 to 2.2 with 1/4 z rotation 
+
+    # corners = numpy.asarray([[-0.5,-1,0],[0.5,-1,0],[0.5,1,0],[-0.5,1,0],[0.5,1,7],[0.5,-1,7],[0.5,1,7],[-0.5,1,7]])
+    # corners = numpy.asarray([[-0.5,0,0.7],[0.5,0,0.7],[0.5,2.14,0.7],[-0.5,2.14,0.7],[0.5,0,2],[0.5,0,2],[0.5,2.14,2],[-0.5,2.14,2]])
+    #corners = numpy.asarray([[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,20,-0.5],[-0.5,20,-0.5],[0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,20,0.5],[-0.5,20,0.5]])
+    # corners = numpy.asarray([[-0.5,-0.5,-0.5],[20,-0.5,-0.5],[20,0.5,-0.5],[-0.5,0.5,-0.5],[20,-0.5,20],[20,-0.5,20],[20,0.5,20],[-0.5,0.5,20]])
+    #corners = numpy.asarray([[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,5,-0.5],[-0.5,5,-0.5],[0.5,-5,0.5],[0.5,-0.5,0.5],[0.5,5,0.5],[-0.5,5,0.5]])
+    # corners = numpy.asarray([[-0.5,-1,-0.5],[0.5,-1,-0.5],[0.5,1,-0.5],[-0.5,1,-0.5],[0.5,-1,50],[0.5,-1,0.50],[0.5,1,50],[-0.5,1,50]])
+    #corners = numpy.asarray([[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[-0.5,0.5,-0.5],[-0.5,-0.5,1],[0.5,-0.5,1],[0.5,0.5,1],[-0.5,0.5,1]])
+    corners = numpy.asarray([[-0.5,-1,0.7],[0.5,-1,0.7],[0.5,1,0.7],[-0.5,1,0.7],[-0.5,-1,2.8],[0.5,-1,2.8],[0.5,1,2.8],[-0.5,1,2.8]])
+
+    
+    #corners = numpy.asarray([[-1,-1,-1],[1,-1,],[-1,1,0],[1,1,0],[1,1,7],[1,-1,7],[1,1,7],[1,1,7]])
+    rotation_matrix = numpy.asarray([
+                        [
+                            0.999945342540741,
+                            -0.008072619326412678,
+                            0.006644818000495434
+                        ],
+                        [
+                            0.008046404458582401,
+                            0.9999597668647766,
+                            0.00396250793710351
+                        ],
+                        [
+                            -0.00667653838172555,
+                            -0.0039088246412575245,
+                            0.9999700784683228
+                        ]
+                    ])
+    rotation_matrix = rotation_matrix.astype("float64")
+    
     # corners = numpy.asarray([[0,0,0.7],[1,0,0.7],[1,2.14,0.7],[0,2.14,0.7],[0,0,2],[1,0,2],[1,2.14,2],[0,2.14,2]])
     # moved to the left 
     # corners = numpy.asarray([[-1,0,0.7],[0,0,0.7],[0,2.14,0.7],[-1,2.14,0.7],[-1,0,2],[0,0,2],[0,2.14,2],[-1,2.14,2]])
     bounds = corners.astype("float64")
     bounds = o3d.utility.Vector3dVector(bounds)
     oriented_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(bounds)
+    oriented_bounding_box.rotate(rotation_matrix, numpy.asarray([0,0,1.2]))
     
     
     #to make box with dots
@@ -84,7 +117,7 @@ while True:
     for packet in data_packets:
         if packet.stream_name == "right":
             right = packet.getData()
-            #cv2.imshow(packet.stream_name, right)
+            cv2.imshow(packet.stream_name, right)
         elif packet.stream_name == "depth":
             frame = packet.getData()
             median = cv2.medianBlur(frame, 5)
@@ -103,8 +136,29 @@ while True:
                     with os.fdopen(fd, 'w') as tmp:
                         json.dump({
                             "width": 1280,
-                            "height": 720,
-                            "intrinsic_matrix": [item for row in device.get_right_intrinsic() for item in row]
+                            "height": 800,
+                            "intrinsic_matrix": 
+                            #[
+                            #     [
+                            #         1494.0189208984375,
+                            #         0.0,
+                            #         957.5805053710938
+                            #     ],
+                            #     [
+                            #         0.0,
+                            #         1492.128662109375,
+                            #         543.8084106445313
+                            #     ],
+                            #     [
+                            #         0.0,
+                            #         0.0,
+                            #         1.0
+                            #     ]
+                            # ]
+                            [item for row in device.get_right_intrinsic() for item in row]
+                                # [[992.48257853,   0.,         638.33578821],
+                                # [  0.,         991.22687503, 362.73109177],
+                                # [  0.,           0.,           1.        ]]
                         }, tmp)
 
                     pcl_converter = PointCloudVisualizer(path)

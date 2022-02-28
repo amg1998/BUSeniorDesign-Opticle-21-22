@@ -8,15 +8,41 @@ class PointCloudVisualizer():
         self.pcl = None
         self.enableViz = enableViz
         
-        assert os.path.isfile(intrinsic_file) , ("Intrisic file not found. Rerun the calibrate.py to generate intrinsic file")
-            # print()
-        self.pinhole_camera_intrinsic = o3d.io.read_pinhole_camera_intrinsic(intrinsic_file)
+        # assert os.path.isfile(intrinsic_file) , ("Intrisic file not found. Rerun the calibrate.py to generate intrinsic file")
+        #     # print()
+        # self.pinhole_camera_intrinsic = o3d.io.read_pinhole_camera_intrinsic(intrinsic_file)
 
         self.pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic()
-        self.pinhole_camera_intrinsic.intrinsic_matrix = [[991.4810956, 0, 642.01482428],
-                                                          [ 0, 990.22665919, 362.21332587],
-                                                          [0, 0, 1]]
+        # self.pinhole_camera_intrinsic.intrinsic_matrix = [[991.4810956, 0, 642.01482428],
+        #                                                   [ 0, 990.22665919, 362.21332587],
+        #                                                   [0, 0, 1]]
+        self.pinhole_camera_intrinsic.intrinsic_matrix =    [[995.72348093,   0.,         639.55650338],
+                                                            [  0.,         994.46367699, 363.3655595 ],
+                                                            [  0.,           0.,           1.        ]]
 
+        # self.pinhole_camera_intrinsic.intrinsic_matrix = [
+        #             [
+        #                 1494.0189208984375,
+        #                 0.0,
+        #                 957.5805053710938
+        #             ],
+        #             [
+        #                 0.0,
+        #                 1492.128662109375,
+        #                 543.8084106445313
+        #             ],
+        #             [
+        #                 0.0,
+        #                 0.0,
+        #                 1.0
+        #             ]
+        #         ]
+        #self.pinhole_camera_intrinsic.intrinsic_matrix =
+        
+        
+        # [[992.48257853,   0.,         638.33578821],
+        # [  0.,         991.22687503, 362.73109177],
+        # [  0.,           0.,           1.        ]]
         # if self.enableViz:
         #     self.vis = o3d.visualization.Visualizer()
         #     self.vis.create_window()
