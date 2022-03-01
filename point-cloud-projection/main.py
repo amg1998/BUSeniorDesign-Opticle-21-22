@@ -71,7 +71,7 @@ while True:
     #corners = numpy.asarray([[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,5,-0.5],[-0.5,5,-0.5],[0.5,-5,0.5],[0.5,-0.5,0.5],[0.5,5,0.5],[-0.5,5,0.5]])
     # corners = numpy.asarray([[-0.5,-1,-0.5],[0.5,-1,-0.5],[0.5,1,-0.5],[-0.5,1,-0.5],[0.5,-1,50],[0.5,-1,0.50],[0.5,1,50],[-0.5,1,50]])
     #corners = numpy.asarray([[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[-0.5,0.5,-0.5],[-0.5,-0.5,1],[0.5,-0.5,1],[0.5,0.5,1],[-0.5,0.5,1]])
-    corners = numpy.asarray([[-0.5,-1,0.7],[0.5,-1,0.7],[0.5,1,0.7],[-0.5,1,0.7],[-0.5,-1,2.8],[0.5,-1,2.8],[0.5,1,2.8],[-0.5,1,2.8]])
+    corners = numpy.asarray([[-0.5,-1.0,0.7],[0.5,-1.0,0.7],[0.5,1.0,0.7],[-0.5,1.0,0.7],[-0.5,-1.0,1.7],[0.5,-1.0,1.7],[0.5,1.0,1.7],[-0.5,1.0,1.7]])
 
     
     #corners = numpy.asarray([[-1,-1,-1],[1,-1,],[-1,1,0],[1,1,0],[1,1,7],[1,-1,7],[1,1,7],[1,1,7]])
@@ -100,7 +100,7 @@ while True:
     bounds = corners.astype("float64")
     bounds = o3d.utility.Vector3dVector(bounds)
     oriented_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(bounds)
-    oriented_bounding_box.rotate(rotation_matrix, numpy.asarray([0,0,1.2]))
+    # oriented_bounding_box.rotate(rotation_matrix, numpy.asarray([0,0,0]))
     
     
     #to make box with dots
@@ -190,8 +190,10 @@ while True:
                     vis.update_geometry(oriented_bounding_box)
                     vis.poll_events()
                     vis.update_renderer()
-
-                print("num_pts: ", len(num_pts))
+                if len(num_pts)>5000:
+                    print("Obstacle")
+                else:
+                    print("Nothing")
                 # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
                 # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
                 # print("Z", numpy.shape(numpy.asarray(pcd.points)[:,2]))
