@@ -6,6 +6,7 @@ import platform
 from pathlib import Path
 import ransac
 import open3d as o3d
+import RPi.GPIO as GPIO
 
 
 import cv2
@@ -30,6 +31,13 @@ pipeline = device.create_pipeline(config={
 
 if pipeline is None:
     raise RuntimeError("Error creating a pipeline!")
+
+#setup PI
+GPIO.setmode(GPIO.BOARD)
+#motor1
+GPIO.setup(8,GPIO.OUT)
+pwm2 = GPIO.PWM(8, 100)
+pwm2.start(0)
 
 right = None
 pcl_converter = None
@@ -191,8 +199,10 @@ while True:
                     vis.poll_events()
                     vis.update_renderer()
                 if len(num_pts)>5000:
+		    pwm2.ChangeDutyCycle(100)
                     print("Obstacle")
                 else:
+		    pwm2.ChangeDutyCycle(0)
                     print("Nothing")
                 # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
                 # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
