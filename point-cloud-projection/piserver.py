@@ -9,7 +9,7 @@ pwm = GPIO.PWM(8, 100)
 pwm.start(0)
 
 HOST_IP = '155.41.35.46'
-PORT = 1000
+PORT = 2000
 BUFFER_SIZE = 20
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
