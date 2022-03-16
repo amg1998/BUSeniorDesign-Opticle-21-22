@@ -15,14 +15,20 @@ BUFFER_SIZE = 20
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print('Socket created')
 
-s.bind((HOST_IP, PORT))
-s.listen(True)
+try:
+    s.bind((HOST_IP, PORT))
+except socket.error:
+    print('Bind failed')
 
+s.listen(1)
+print('Socket awaiting messages')
 conn, addr = s.accept()
 print('Connection address:', addr)
 while True:
     data = conn.recv(BUFFER_SIZE)
     if data == '1':
         pwm.ChangeDutyCycle(100)
+        print('Vibrating')
     else:
         pwm.ChangeDutyCycle(0)
+        print('Not Vibrating')
