@@ -5,11 +5,11 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BOARD)
 #motor1
 GPIO.setup(8,GPIO.OUT)
-pwm = GPIO.PWM(14, 100)
+pwm = GPIO.PWM(8, 100)
 pwm.start(0)
 
-HOST_IP =  ''
-PORT = ''
+HOST_IP = '155.41.35.46'
+PORT = 1000
 BUFFER_SIZE = 20
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
