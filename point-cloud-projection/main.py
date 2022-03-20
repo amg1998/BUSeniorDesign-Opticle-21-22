@@ -13,6 +13,13 @@ import cv2
 import depthai
 import numpy
 
+import socket
+
+HOST = '155.41.122.253'
+PORT = '2000'
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((HOST,PORT))
+
 
 try:
     from projector_3d import PointCloudVisualizer
@@ -199,11 +206,13 @@ while True:
                     vis.poll_events()
                     vis.update_renderer()
                 if len(num_pts)>5000:
-		    pwm2.ChangeDutyCycle(100)
+                    pwm2.ChangeDutyCycle(100)
                     print("Obstacle")
+                    s.send('1')
                 else:
-		    pwm2.ChangeDutyCycle(0)
+                    pwm2.ChangeDutyCycle(0)
                     print("Nothing")
+                    s.send('0')
                 # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
                 # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
                 # print("Z", numpy.shape(numpy.asarray(pcd.points)[:,2]))
