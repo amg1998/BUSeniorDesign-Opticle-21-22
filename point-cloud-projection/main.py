@@ -22,11 +22,13 @@ import numpy
 
 #setup for new depthai version
 # Closer-in minimum depth, disparity range is doubled (from 95 to 190):
-extended_disparity = False
+extended = False
+out_depth = False
+out_rectified = True
 # Better accuracy for longer distance, fractional disparity 32-levels:
-subpixel = False
+subpixel = True
 # Better handling for occlusions:
-lr_check = False
+lr_check = True
 
 # Create pipeline
 pipeline = dai.Pipeline()
@@ -52,7 +54,7 @@ depth.initialConfig.setConfidenceThreshold(245)
 # Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7 (default)
 depth.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
 depth.setLeftRightCheck(lr_check)
-depth.setExtendedDisparity(extended_disparity)
+depth.setExtendedDisparity(extended)
 depth.setSubpixel(subpixel)
 
 # Linking
@@ -96,6 +98,14 @@ isstarted = False
 with dai.Device(pipeline) as device:
     qDepth = device.getOutputQueue(name="disparity", maxSize=4, blocking=False)
     qRight = device.getOutputQueue(name="right", maxSize=4, blocking=False)
+
+    try:
+        from projector_3d import PointCloudVisualizer
+    except ImportError as e:
+        raise ImportError(f"\033[1;5;31mError occured when importing PCL projector: {e}. Try disabling the point cloud \033[0m ")
+    calibData = device.readCalibration()
+    right_intrinsic = numpy.array(calibData.getCameraIntrinsics(dai.CameraBoardSocket.RIGHT, 640, 400))
+    pcl_converter = PointCloudVisualizer(right_intrinsic, 640, 400)
 
     while True:
         # data_packets = pipeline.get_available_data_packets()
@@ -149,109 +159,104 @@ with dai.Device(pipeline) as device:
         # frame = cv2.applyColorMap(frame, cv2.COLORMAP_JET)
         # print(type(median2))
         cv2.imshow("depth",median2)
-        '''
-        median3 = cv2.medianBlur(median,5)
-        median4 = cv2.medianBlur(median,5)
-        median5 = cv2.medianBlur(median,5)
+     
+        # if right is not None:
 
-        bilateral = cv2.bilateralFilter(frame,15,75,75)
-        '''
-        if right is not None:
+            # if pcl_converter is None:
+            #     fd, path = tempfile.mkstemp(suffix='.json')
+            #     with os.fdopen(fd, 'w') as tmp:
+            #         json.dump({
+            #             "width": 1280,
+            #             "height": 800,
+            #             "intrinsic_matrix": 
+            #             #[
+            #             #     [
+            #             #         1494.0189208984375,
+            #             #         0.0,
+            #             #         957.5805053710938
+            #             #     ],
+            #             #     [
+            #             #         0.0,
+            #             #         1492.128662109375,
+            #             #         543.8084106445313
+            #             #     ],
+            #             #     [
+            #             #         0.0,
+            #             #         0.0,
+            #             #         1.0
+            #             #     ]
+            #             # ]
+            #                 [[995.72348093,   0.,         639.55650338],
+            #                 [  0.,         994.46367699, 363.3655595 ],
+            #                 [  0.,           0.,           1.        ]]
+            #         }, tmp)
 
-            if pcl_converter is None:
-                fd, path = tempfile.mkstemp(suffix='.json')
-                with os.fdopen(fd, 'w') as tmp:
-                    json.dump({
-                        "width": 1280,
-                        "height": 800,
-                        "intrinsic_matrix": 
-                        #[
-                        #     [
-                        #         1494.0189208984375,
-                        #         0.0,
-                        #         957.5805053710938
-                        #     ],
-                        #     [
-                        #         0.0,
-                        #         1492.128662109375,
-                        #         543.8084106445313
-                        #     ],
-                        #     [
-                        #         0.0,
-                        #         0.0,
-                        #         1.0
-                        #     ]
-                        # ]
-                            [[995.72348093,   0.,         639.55650338],
-                            [  0.,         994.46367699, 363.3655595 ],
-                            [  0.,           0.,           1.        ]]
-                    }, tmp)
-
-                pcl_converter = PointCloudVisualizer(path)
-            pcd = pcl_converter.rgbd_to_projection(median, right)
+            #     pcl_converter = PointCloudVisualizer(path)
+        pcd = pcl_converter.rgbd_to_projection(median, right, False)
+            
             # print(numpy.asarray(pcd.points))
             #to get points within bounding box
-            num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
-            # cropped_pcd = pcd.crop(oriented_bounding_box)
+        num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
+        # cropped_pcd = pcd.crop(oriented_bounding_box)
 
-            if not isstarted:
-                vis.add_geometry(pcd)
-                # vis.add_geometry(pcd_x)
-                # vis.add_geometry(pcd_y)
-                # vis.add_geometry(pcd_z)
-                vis.add_geometry(oriented_bounding_box)
-                # vis.add_geometry(pcd_pback)
-                # vis.add_geometry(pcd_pfront)
-                # vis.add_geometry(pcd_pmid)
-                isstarted = True       
-                            
-            else:
-                vis.update_geometry(pcd)
-                # vis.update_geometry(pcd_x)
-                # vis.update_geometry(pcd_y)
-                # vis.update_geometry(pcd_z)
-                # vis.update_geometry(pcd_pback)
-                # vis.update_geometry(pcd_pmid)
-                # vis.update_geometry(pcd_pfront)
-                vis.update_geometry(oriented_bounding_box)
-                vis.poll_events()
-                vis.update_renderer()
-            if len(num_pts)>5000:
-                # pwm2.ChangeDutyCycle(100)
-                print("Obstacle")
-                # s.send(bytes('1','utf-8'))
-            else:
-                # pwm2.ChangeDutyCycle(0)
-                print("Nothing")
-                # s.send(bytes('0','utf-8'))
-            # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
-            # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
-            # print("Z", numpy.shape(numpy.asarray(pcd.points)[:,2]))
+        if not isstarted:
+            vis.add_geometry(pcd)
+            # vis.add_geometry(pcd_x)
+            # vis.add_geometry(pcd_y)
+            # vis.add_geometry(pcd_z)
+            vis.add_geometry(oriented_bounding_box)
+            # vis.add_geometry(pcd_pback)
+            # vis.add_geometry(pcd_pfront)
+            # vis.add_geometry(pcd_pmid)
+            isstarted = True       
+                        
+        else:
+            vis.update_geometry(pcd)
+            # vis.update_geometry(pcd_x)
+            # vis.update_geometry(pcd_y)
+            # vis.update_geometry(pcd_z)
+            # vis.update_geometry(pcd_pback)
+            # vis.update_geometry(pcd_pmid)
+            # vis.update_geometry(pcd_pfront)
+            vis.update_geometry(oriented_bounding_box)
+            vis.poll_events()
+            vis.update_renderer()
+        if len(num_pts)>5000:
+            # pwm2.ChangeDutyCycle(100)
+            print("Obstacle")
+            # s.send(bytes('1','utf-8'))
+        else:
+            # pwm2.ChangeDutyCycle(0)
+            print("Nothing")
+            # s.send(bytes('0','utf-8'))
+        # print("X", numpy.shape(numpy.asarray(pcd.points)[:,0]))
+        # print("Y", numpy.shape(numpy.asarray(pcd.points)[:,1]))
+        # print("Z", numpy.shape(numpy.asarray(pcd.points)[:,2]))
 
-            # print(numpy.asarray((pcd.points)))
-            # print(numpy.shape(numpy.asarray((pcl_converter.pcl.points))))
-            # pointsc = numpy.asarray((pcl_converter.pcl.points))
-            # pointspcd = numpy.asarray((pcd.points))
-            # print("X max: , X min: ", max(pointspcd[:,0]),min(pointspcd[:,0]))
-            # print("Y max: , Y min: ", max(pointspcd[:,1]),min(pointspcd[:,1]))
-            # print("Z max: , Z min: ", max(pointspcd[:,2]),min(pointspcd[:,2]))
-
-
-                # x,y,z = ransac.find_plane(pcd)
-                # ransac.show_graph(x,y,z)
-            # cv2.imshow(packet.stream_name, frame)
-            '''
-            cv2.imshow("filter", median)
-            '''
-            # cv2.imshow("filter2", median2)
-            '''
-            cv2.imshow("filter3", median3)
-            cv2.imshow("filter4", median4)
-            '''
-            #cv2.imshow("filter5", median5)
+        # print(numpy.asarray((pcd.points)))
+        # print(numpy.shape(numpy.asarray((pcl_converter.pcl.points))))
+        # pointsc = numpy.asarray((pcl_converter.pcl.points))
+        # pointspcd = numpy.asarray((pcd.points))
+        # print("X max: , X min: ", max(pointspcd[:,0]),min(pointspcd[:,0]))
+        # print("Y max: , Y min: ", max(pointspcd[:,1]),min(pointspcd[:,1]))
+        # print("Z max: , Z min: ", max(pointspcd[:,2]),min(pointspcd[:,2]))
 
 
-            #cv2.imshow("filter2", bilateral)
+            # x,y,z = ransac.find_plane(pcd)
+            # ransac.show_graph(x,y,z)
+        # cv2.imshow(packet.stream_name, frame)
+        '''
+        cv2.imshow("filter", median)
+        '''
+        # cv2.imshow("filter2", median2)
+        '''
+        cv2.imshow("filter3", median3)
+        cv2.imshow("filter4", median4)
+        '''
+        #cv2.imshow("filter5", median5)
+
+
+        #cv2.imshow("filter2", bilateral)
 
         if cv2.waitKey(1) == ord("q"):
             break
