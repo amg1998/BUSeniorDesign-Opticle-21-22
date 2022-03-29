@@ -203,14 +203,14 @@ with dai.Device(pipeline) as device:
     color = (255, 255, 255)
     detcount = 0
 
-    mode = 0
+    mode = 1
 
     while True:
         if (GPIO.input(modeswitchpin) == 1):
-            mode = 1
+            mode = 2
             print(mode)
         else:
-            mode = 0
+            mode = 1
             print(mode)
         inPreview = previewQueue.get()
         inDet = detectionNNQueue.get()
