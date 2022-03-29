@@ -317,12 +317,10 @@ with dai.Device(pipeline) as device:
             vis.poll_events()
             vis.update_renderer()
         if len(num_pts)>5000:
-            #print("Obstacle")
-            continue
+            print("Obstacle")
             # s.send(bytes('1','utf-8'))
         else:
-            #print("Nothing")
-            continue
+            print("Nothing")
             # s.send(bytes('0','utf-8'))
 
         if cv2.waitKey(1) == ord('q'):
