@@ -9,7 +9,7 @@ import numpy as np
 import time
 from datetime import datetime
 import open3d as o3d
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 from subprocess import Popen
 # import socket
 
@@ -31,8 +31,11 @@ Spatial Tiny-yolo example
 # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # s.connect((HOST,PORT))
 
-#setup PI
-# GPIO.setmode(GPIO.BOARD)
+# setup PI GPIO
+GPIO.setmode(GPIO.BOARD)
+# setup mode switch
+modeswitchpin = 3
+GPIO.setup(modeswitchpin, GPIO.IN)
 # #motor1
 # GPIO.setup(8,GPIO.OUT)
 # pwm2 = GPIO.PWM(8, 100)
@@ -200,7 +203,15 @@ with dai.Device(pipeline) as device:
     color = (255, 255, 255)
     detcount = 0
 
+    mode = 0
+
     while True:
+        if (GPIO.input(modeswitchpin) == 1):
+            mode = 1
+            print(mode)
+        else:
+            mode = 0
+            print(mode)
         inPreview = previewQueue.get()
         inDet = detectionNNQueue.get()
         depth = depthQueue.get()
