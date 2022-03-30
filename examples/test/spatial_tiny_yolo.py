@@ -206,96 +206,97 @@ with dai.Device(pipeline) as device:
     mode = 1
 
     while True:
+        # if (GPIO.input(modeswitchpin) == 1):
+        #     mode = 2
+        #     print(mode)
+        # else:
+        #     mode = 1
+        #     print(mode)
         if (GPIO.input(modeswitchpin) == 1):
-            mode = 2
-            print(mode)
-        else:
-            mode = 1
-            print(mode)
-        inPreview = previewQueue.get()
-        inDet = detectionNNQueue.get()
-        depth = depthQueue.get()
+            inPreview = previewQueue.get()
+            inDet = detectionNNQueue.get()
+            depth = depthQueue.get()
 
-        frame = inPreview.getCvFrame()
-        depthFrame = depth.getFrame()
-        depthFrameColor = cv2.normalize(depthFrame, None, 255, 0, cv2.NORM_INF, cv2.CV_8UC1)
-        depthFrameColor = cv2.equalizeHist(depthFrameColor)
-        depthFrameColor = cv2.applyColorMap(depthFrameColor, cv2.COLORMAP_HOT)
+            frame = inPreview.getCvFrame()
+            depthFrame = depth.getFrame()
+            depthFrameColor = cv2.normalize(depthFrame, None, 255, 0, cv2.NORM_INF, cv2.CV_8UC1)
+            depthFrameColor = cv2.equalizeHist(depthFrameColor)
+            depthFrameColor = cv2.applyColorMap(depthFrameColor, cv2.COLORMAP_HOT)
 
-        counter+=1
-        current_time = time.monotonic()
-        if (current_time - startTime) > 1 :
-            fps = counter / (current_time - startTime)
-            counter = 0
-            startTime = current_time
+            counter+=1
+            current_time = time.monotonic()
+            if (current_time - startTime) > 1 :
+                fps = counter / (current_time - startTime)
+                counter = 0
+                startTime = current_time
 
-        detections = inDet.detections
-        if len(detections) != 0:
-            boundingBoxMapping = xoutBoundingBoxDepthMappingQueue.get()
-            roiDatas = boundingBoxMapping.getConfigData()
+            detections = inDet.detections
+            if len(detections) != 0:
+                boundingBoxMapping = xoutBoundingBoxDepthMappingQueue.get()
+                roiDatas = boundingBoxMapping.getConfigData()
 
-            for roiData in roiDatas:
-                roi = roiData.roi
-                roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
-                topLeft = roi.topLeft()
-                bottomRight = roi.bottomRight()
-                xmin = int(topLeft.x)
-                ymin = int(topLeft.y)
-                xmax = int(bottomRight.x)
-                ymax = int(bottomRight.y)
+                for roiData in roiDatas:
+                    roi = roiData.roi
+                    roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
+                    topLeft = roi.topLeft()
+                    bottomRight = roi.bottomRight()
+                    xmin = int(topLeft.x)
+                    ymin = int(topLeft.y)
+                    xmax = int(bottomRight.x)
+                    ymax = int(bottomRight.y)
 
-                cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
+                    cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
 
 
-        # If the frame is available, draw bounding boxes on it and show the frame
-        height = frame.shape[0]
-        width  = frame.shape[1]
-        for detection in detections:
-            # Denormalize bounding box
-            if detcount < 51: # check if less than n detections have been made
-                detcount += 1
-            else:
-                detcount = 0
-            x1 = int(detection.xmin * width)
-            x2 = int(detection.xmax * width)
-            y1 = int(detection.ymin * height)
-            y2 = int(detection.ymax * height)
-            try:
-                label = labelMap[detection.label]
+            # If the frame is available, draw bounding boxes on it and show the frame
+            height = frame.shape[0]
+            width  = frame.shape[1]
+            for detection in detections:
+                # Denormalize bounding box
+                if detcount < 51: # check if less than n detections have been made
+                    detcount += 1
+                else:
+                    detcount = 0
+                x1 = int(detection.xmin * width)
+                x2 = int(detection.xmax * width)
+                y1 = int(detection.ymin * height)
+                y2 = int(detection.ymax * height)
+                try:
+                    label = labelMap[detection.label]
+                    
+                    current=datetime.now()
+                    diff=current-start
+                    if ((diff.seconds%5==0) and (detection.confidence>10)): # send out label after n-1 detections
+                        print(label) # label of object detected
+                        print(detection.confidence)
+                        print(diff.seconds)
+                        
+                        
+                        vdistance=str(round((detection.spatialCoordinates.z/1000),1))
+                        hdistance=str(abs(round((detection.spatialCoordinates.x/1000),1)))
+                        vd=("m"+"front")
+                        Popen([cmd_start+label+vdistance+vd+cmd_end],shell=True)
+                        if detection.spatialCoordinates.x <=0:
+                            ld=("m"+"left")
+                            Popen([cmd_start+label+vdistance+vd+hdistance+ld+cmd_end],shell=True)
+                        elif detection.spatialCoordinates.x >0:
+                            rd=("m"+"right")
+                            Popen([cmd_start+label+vdistance+vd+hdistance+rd+cmd_end],shell=True)
+                        #print(detection.spatialCoordinates.z / 1000, "m") # z-distance from object in m
                 
-                current=datetime.now()
-                diff=current-start
-                if ((diff.seconds%5==0) and (detection.confidence>10)): # send out label after n-1 detections
-                    print(label) # label of object detected
-                    print(detection.confidence)
-                    print(diff.seconds)
-                    
-                    
-                    vdistance=str(round((detection.spatialCoordinates.z/1000),1))
-                    hdistance=str(abs(round((detection.spatialCoordinates.x/1000),1)))
-                    vd=("m"+"front")
-                    Popen([cmd_start+label+vdistance+vd+cmd_end],shell=True)
-                    if detection.spatialCoordinates.x <=0:
-                        ld=("m"+"left")
-                        Popen([cmd_start+label+vdistance+vd+hdistance+ld+cmd_end],shell=True)
-                    elif detection.spatialCoordinates.x >0:
-                        rd=("m"+"right")
-                        Popen([cmd_start+label+vdistance+vd+hdistance+rd+cmd_end],shell=True)
-                    #print(detection.spatialCoordinates.z / 1000, "m") # z-distance from object in m
-             
-            except:
-                label = detection.label
-            cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"X: {int(detection.spatialCoordinates.x)} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Y: {int(detection.spatialCoordinates.y)} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                except:
+                    label = detection.label
+                cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, f"X: {int(detection.spatialCoordinates.x)} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, f"Y: {int(detection.spatialCoordinates.y)} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
 
-        cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
-        cv2.imshow("depth", depthFrameColor)
-        cv2.imshow("rgb", frame)
+            cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
+            cv2.imshow("depth", depthFrameColor)
+            cv2.imshow("rgb", frame)
 
         #########################PC
         corners = np.asarray([[-0.5,-1.0,0.35],[0.5,-1.0,0.35],[0.5,1.0,0.35],[-0.5,1.0,0.35],[-0.5,-1.0,1.7],[0.5,-1.0,1.7],[0.5,1.0,1.7],[-0.5,1.0,1.7]])
