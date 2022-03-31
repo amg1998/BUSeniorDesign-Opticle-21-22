@@ -29,7 +29,7 @@ Spatial Tiny-yolo example
 
 # setup socket
 HOST = '172.20.10.11'
-PORT = 2000
+PORT = 2100
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST,PORT))
 
@@ -295,15 +295,15 @@ with dai.Device(pipeline) as device:
                             print(diff.seconds)
                             
                             
-                            vdistance=str(round((detection.spatialCoordinates.z/1000),1))
-                            hdistance=str(abs(round((detection.spatialCoordinates.x/1000),1)))
-                            vd=("meters"+"front")
+                            vdistance=str(round((detection.spatialCoordinates.z/1000)*3.28,1))
+                            hdistance=str(abs(round((detection.spatialCoordinates.x/1000)*3.28,1)))
+                            vd=("feet"+"front")
                             Popen([cmd_start+label+vdistance+vd+speed+cmd_end],shell=True)
                             if detection.spatialCoordinates.x <=0:
-                                ld=("meters"+"left")
+                                ld=("feet"+"left")
                                 Popen([cmd_start+label+vdistance+vd+hdistance+ld+speed+cmd_end],shell=True)
                             elif detection.spatialCoordinates.x >0:
-                                rd=("meters"+"right")
+                                rd=("feet"+"right")
                                 Popen([cmd_start+label+vdistance+vd+hdistance+rd+speed+cmd_end],shell=True)
                             #print(detection.spatialCoordinates.z / 1000, "m") # z-distance from object in m
                             time.sleep(5)
