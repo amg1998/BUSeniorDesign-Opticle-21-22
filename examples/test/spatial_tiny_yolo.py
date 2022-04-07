@@ -51,37 +51,38 @@ GPIO.setup(modeswitchpin, GPIO.IN)
 # pwm1=GPIO.PWM(12,100)
 # pwm1.start(0)
 # Get argument first
-nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
+nnBlobPath = str((Path(__file__).parent / Path('../models/custom_mobilenet.blob')).resolve().absolute())
 if 1 < len(sys.argv):
     arg = sys.argv[1]
-    if arg == "yolo3":
-        nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v3-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
-    elif arg == "yolo4":
-        nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
-    else:
-        nnBlobPath = arg
-else:
-    print("Using Tiny YoloV4 model. If you wish to use Tiny YOLOv3, call 'tiny_yolo.py yolo3'")
+#     if arg == "yolo3":
+#         nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v3-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
+#     elif arg == "yolo4":
+#         nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
+#     else:
+#         nnBlobPath = arg
+# else:
+#     print("Using Tiny YoloV4 model. If you wish to use Tiny YOLOv3, call 'tiny_yolo.py yolo3'")
 
 if not Path(nnBlobPath).exists():
     import sys
     raise FileNotFoundError(f'Required file/s not found, please run "{sys.executable} install_requirements.py"')
 
 # Tiny yolo v3/4 label texts
-labelMap = [
-    "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
-    "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
-    "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
-    "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
-    "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
-    "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
-    "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
-    "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
-    "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
-    "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
-    "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
-    "teddy bear",     "hair drier", "toothbrush"
-]
+# labelMap = [
+#     "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
+#     "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
+#     "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
+#     "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
+#     "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
+#     "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
+#     "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
+#     "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
+#     "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
+#     "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
+#     "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
+#     "teddy bear",     "hair drier", "toothbrush"
+# ]
+labelMap = ["door", "handle"]
 
 syncNN = True
 
@@ -100,7 +101,7 @@ pipeline = dai.Pipeline()
 
 # Define sources and outputs
 camRgb = pipeline.create(dai.node.ColorCamera)
-spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
+spatialDetectionNetwork = pipeline.create(dai.node.MobileNetSpatialDetectionNetwork)
 monoLeft = pipeline.create(dai.node.MonoCamera)
 monoRight = pipeline.create(dai.node.MonoCamera)
 stereo = pipeline.create(dai.node.StereoDepth)
@@ -138,12 +139,12 @@ spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
 spatialDetectionNetwork.setDepthLowerThreshold(100)
 spatialDetectionNetwork.setDepthUpperThreshold(5000)
 
-# Yolo specific parameters
-spatialDetectionNetwork.setNumClasses(80)
-spatialDetectionNetwork.setCoordinateSize(4)
-spatialDetectionNetwork.setAnchors(np.array([10,14, 23,27, 37,58, 81,82, 135,169, 344,319]))
-spatialDetectionNetwork.setAnchorMasks({ "side26": np.array([1,2,3]), "side13": np.array([3,4,5]) })
-spatialDetectionNetwork.setIouThreshold(0.5)
+# # Yolo specific parameters
+# spatialDetectionNetwork.setNumClasses(80)
+# spatialDetectionNetwork.setCoordinateSize(4)
+# spatialDetectionNetwork.setAnchors(np.array([10,14, 23,27, 37,58, 81,82, 135,169, 344,319]))
+# spatialDetectionNetwork.setAnchorMasks({ "side26": np.array([1,2,3]), "side13": np.array([3,4,5]) })
+# spatialDetectionNetwork.setIouThreshold(0.5)
 
 # Linking
 monoLeft.out.link(stereo.left)
