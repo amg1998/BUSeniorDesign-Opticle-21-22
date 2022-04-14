@@ -656,7 +656,7 @@ class Main:
     depthai_class = DepthAi
 
     def __init__(self):
-        self.nnBlobPath = nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
+        self.nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
         self.depthai = self.depthai_class(self.nnBlobPath)
         self.labelMap = [
             "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
@@ -672,7 +672,7 @@ class Main:
             "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
             "teddy bear",     "hair drier", "toothbrush"
         ]
-        self.isstarted = None
+        self.isstarted = False
         self.pcl_converter = None
 
 
@@ -770,17 +770,64 @@ class Main:
             #to get points within bounding box
             num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
 
-
-            if not self.isstarted:
-                self.depthai.vis.add_geometry(pcd)
-                self.depthai.vis.add_geometry(oriented_bounding_box)
-                self.isstarted = True       
+            # vis = o3d.visualization.Visualizer()
+            
+            # vis.create_window()
+            # if not self.isstarted:
+            #     vis.add_geometry(pcd)
+            #     vis.add_geometry(oriented_bounding_box)
+            #     isstarted = True       
                         
+            # else:
+            #     vis.update_geometry(pcd)
+            #     vis.update_geometry(oriented_bounding_box)
+            #     vis.poll_events()
+            #     vis.update_renderer()
+
+            if len(num_pts)>5000:
+                print("Obstacle")
+                # s.send(bytes('1','utf-8'))
             else:
-                self.depthai.vis.update_geometry(pcd)
-                self.depthai.vis.update_geometry(oriented_bounding_box)
-                self.depthai.vis.poll_events()
-                self.depthai.vis.update_renderer()
+                print("Nothing")
+                # s.send(bytes('0','utf-8'))
+        # del vis
+
+        if self.pcl_converter is not None:
+            self.pcl_converter.close_window()
+
+    def run_pointcloud(self): 
+
+        for depthFrame, pcFrame in self.depthai.pc():
+        
+            corners = np.asarray([[-0.5,-1.0,0.35],[0.5,-1.0,0.35],[0.5,1.0,0.35],[-0.5,1.0,0.35],[-0.5,-1.0,1.7],[0.5,-1.0,1.7],[0.5,1.0,1.7],[-0.5,1.0,1.7]])
+
+            bounds = corners.astype("float64")
+            bounds = o3d.utility.Vector3dVector(bounds)
+            oriented_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(bounds)
+
+            right = pcFrame
+ 
+            frame = depthFrame
+            median = cv2.medianBlur(frame, 5)
+            
+            self.pcl_converter = PointCloudVisualizer(self.depthai.right_intrinsic, 640, 400)
+
+            pcd = self.pcl_converter.rgbd_to_projection(median, right,False)
+
+            #to get points within bounding box
+            num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
+
+
+            # if not self.isstarted:
+            #     self.depthai.vis.add_geometry(pcd)
+            #     self.depthai.vis.add_geometry(oriented_bounding_box)
+            #     self.isstarted = True       
+                        
+            # else:
+            #     self.depthai.vis.update_geometry(pcd)
+            #     self.depthai.vis.update_geometry(oriented_bounding_box)
+            #     self.depthai.vis.poll_events()
+            #     self.depthai.vis.update_renderer()
             if len(num_pts)>5000:
                 print("Obstacle")
                 # s.send(bytes('1','utf-8'))
@@ -791,49 +838,6 @@ class Main:
         if self.pcl_converter is not None:
             self.pcl_converter.close_window()
 
-    # def run_pointcloud(self): 
-
-        
-    #     corners = np.asarray([[-0.5,-1.0,0.35],[0.5,-1.0,0.35],[0.5,1.0,0.35],[-0.5,1.0,0.35],[-0.5,-1.0,1.7],[0.5,-1.0,1.7],[0.5,1.0,1.7],[-0.5,1.0,1.7]])
-
-    #     bounds = corners.astype("float64")
-    #     bounds = o3d.utility.Vector3dVector(bounds)
-    #     oriented_bounding_box = o3d.geometry.OrientedBoundingBox.create_from_points(bounds)
-
-    #     inRight = qRight.get()
-    #     right = inRight.getFrame()
-
-    #     frame = depth.getFrame()
-    #     median = cv2.medianBlur(frame, 5)
-    #     median2 = cv2.medianBlur(median,5)
-
-    #     pcd = pcl_converter.rgbd_to_projection(median, right,False)
-
-    #     #to get points within bounding box
-    #     num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
-
-
-    #     if not isstarted:
-    #         vis.add_geometry(pcd)
-    #         vis.add_geometry(oriented_bounding_box)
-    #         isstarted = True       
-                    
-    #     else:
-    #         vis.update_geometry(pcd)
-    #         vis.update_geometry(oriented_bounding_box)
-    #         vis.poll_events()
-    #         vis.update_renderer()
-    #     if len(num_pts)>5000:
-    #         print("Obstacle")
-    #         # s.send(bytes('1','utf-8'))
-    #     else:
-    #         print("Nothing")
-    #         # s.send(bytes('0','utf-8'))
-
-    #     if cv2.waitKey(1) == ord('q'):
-    #         break
-    # if pcl_converter is not None:
-    #     pcl_converter.close_window()
-
 if __name__ == '__main__':
-    Main().run_yolo_pc()
+
+    Main().run_pointcloud()
