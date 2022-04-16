@@ -437,6 +437,7 @@ from subprocess import Popen
 # import socket
 from depthai_setup import DepthAi
 from projector_3d import PointCloudVisualizer
+from collections import deque
 
 
 start=datetime.now()
@@ -656,28 +657,35 @@ class Main:
     depthai_class = DepthAi
 
     def __init__(self):
-        self.nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
+        self.nnBlobPath = str((Path(__file__).parent / Path('../models/2classes_model.blob')).resolve().absolute())
         self.depthai = self.depthai_class(self.nnBlobPath)
-        self.labelMap = [
-            "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
-            "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
-            "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
-            "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
-            "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
-            "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
-            "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
-            "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
-            "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
-            "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
-            "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
-            "teddy bear",     "hair drier", "toothbrush"
-        ]
+        self.labelMap = ["", "door", "handle"]
+        # [
+        #     "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
+        #     "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
+        #     "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
+        #     "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
+        #     "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
+        #     "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
+        #     "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
+        #     "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
+        #     "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
+        #     "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
+        #     "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
+        #     "teddy bear",     "hair drier", "toothbrush"
+        # ]
         self.isstarted = False
         self.pcl_converter = None
+        self.target = "handle"
+        self.confq = deque(maxlen=30)
+        self.lastsaid = [0,0,0]
+        self.epsDist = 3
 
 
     def run_yolo_pc(self):
         color = (255, 255, 255)
+        speed=' -s' + '160'
+        said = 0
         # isstarted = False
         # pcl_converter = None
         # vis = o3d.visualization.Visualizer()
@@ -699,38 +707,32 @@ class Main:
             # If the frame is available, draw bounding boxes on it and show the frame
             height = frame.shape[0]
             width  = frame.shape[1]
+            maxconf = 0
+            maxconfdepth = 0
+            maxconfx = 0
+            medvals = [0,0,0]
+            label=""
             for detection in self.depthai.detections:
-                # Denormalize bounding box
-                # if detcount < 51: # check if less than n detections have been made
-                #     detcount += 1
-                # else:
-                #     detcount = 0
+ 
                 x1 = int(detection.xmin * width)
                 x2 = int(detection.xmax * width)
                 y1 = int(detection.ymin * height)
                 y2 = int(detection.ymax * height)
                 try:
                     label = self.labelMap[detection.label]
-                    
-                    current=datetime.now()
-                    diff=current-start
-                    if ((diff.seconds%5==0) and (detection.confidence>10)): # send out label after n-1 detections
-                        print(label) # label of object detected
-                        print(detection.confidence)
-                        print(diff.seconds)
-                        
-                        
-                        vdistance=str(round((detection.spatialCoordinates.z/1000),1))
-                        hdistance=str(abs(round((detection.spatialCoordinates.x/1000),1)))
-                        vd=("m"+"front")
-                        Popen([cmd_start+label+vdistance+vd+cmd_end],shell=True)
-                        if detection.spatialCoordinates.x <=0:
-                            ld=("m"+"left")
-                            Popen([cmd_start+label+vdistance+vd+hdistance+ld+cmd_end],shell=True)
-                        elif detection.spatialCoordinates.x >0:
-                            rd=("m"+"right")
-                            Popen([cmd_start+label+vdistance+vd+hdistance+rd+cmd_end],shell=True)
-                        #print(detection.spatialCoordinates.z / 1000, "m") # z-distance from object in m
+
+                    #check if a handle is detected
+                    if (label==self.target):
+
+                        #save highest confidence value and corresponding depth
+                        if detection.confidence>maxconf:
+                            maxconf = detection.confidence
+                            maxconfdepth = detection.spatialCoordinates.z
+                            maxconfx = detection.spatialCoordinates.x
+
+                        tempq = list(self.confq)
+                        medvals = np.median(tempq, axis=0)
+                        # print(medvals[1])
                     
                 except:
                     label = detection.label
@@ -741,6 +743,40 @@ class Main:
                 cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+
+            #push highest confidence & corresponding depth to queue
+            self.confq.append([maxconf, maxconfdepth, maxconfx])
+            # try:
+            distdiff = abs(round(self.lastsaid[1]/1000*3.28,1)-round(medvals[1]/1000*3.28,1))
+            # print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
+            if(label==self.target and distdiff>self.epsDist and medvals[1]>0):
+                self.lastsaid = medvals
+                heading = self.calc_direction(medvals[1],medvals[2])
+                print("######SAID")
+                vdistance = str(round(self.lastsaid[1]/1000*3.28,1))
+                Popen(cmd_start+self.target+vdistance+"feetat"+heading+"o'clock"+speed,shell=True)
+                said = 1
+            # except:
+            #     print("starting oak")
+            # current=datetime.now()
+            # diff=current-start
+            # if ((diff.seconds%5==0) and (detection.confidence>10)): # send out label after n-1 detections
+            #     print(label) # label of object detected
+            #     print(detection.confidence)
+            #     print(diff.seconds)
+                
+                
+            #     vdistance=str(round((detection.spatialCoordinates.z/1000),1))
+            #     hdistance=str(abs(round((detection.spatialCoordinates.x/1000),1)))
+            #     vd=("m"+"front")
+            #     Popen([cmd_start+label+vdistance+vd+cmd_end],shell=True)
+            #     if detection.spatialCoordinates.x <=0:
+            #         ld=("m"+"left")
+            #         Popen([cmd_start+label+vdistance+vd+hdistance+ld+cmd_end],shell=True)
+            #     elif detection.spatialCoordinates.x >0:
+            #         rd=("m"+"right")
+            #         Popen([cmd_start+label+vdistance+vd+hdistance+rd+cmd_end],shell=True)
+            #     #print(detection.spatialCoordinates.z / 1000, "m") # z-distance from object in m
 
             cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
             cv2.imshow("depth", depthFrameColor)
@@ -794,6 +830,24 @@ class Main:
 
         if self.pcl_converter is not None:
             self.pcl_converter.close_window()
+    def calc_direction(self,z, x):
+        z = round(z/1000*3.28,1)
+        x = round(x/1000*3.28,1)
+        angle = round(np.arctan(x/z),1)*180/3.14
+        print(z,x)
+        print(angle)
+        if (15<angle<=45):
+            heading = 1
+        elif (45<angle<75):
+            heading = 2
+        elif (-15<angle<=15):
+            heading = 12
+        elif (-45<angle<=-15):
+            heading = 11
+        elif (-75<angle<=-45):
+            heading = 11
+        return(str(heading))
+
 
     def run_pointcloud(self): 
 
@@ -840,4 +894,4 @@ class Main:
 
 if __name__ == '__main__':
 
-    Main().run_pointcloud()
+    Main().run_yolo_pc()
