@@ -81,7 +81,7 @@ class Main:
         self.target = "handle"
         self.confq = deque(maxlen=30)
         self.lastsaid = [0,0,0]
-        self.epsDist = 3
+        self.epsDist = 1
 
 
     def run_yolo_pc(self):
@@ -150,15 +150,15 @@ class Main:
             self.confq.append([maxconf, maxconfdepth, maxconfx])
             # try:
             distdiff = abs(round(self.lastsaid[1]/1000*3.28,1)-round(medvals[1]/1000*3.28,1))
-            # print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
+            print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
             if(label==self.target and distdiff>self.epsDist and medvals[1]>0):
                 self.lastsaid = medvals
                 heading = self.calc_direction(medvals[1],medvals[2])
                 print("######SAID")
                 vdistance = str(round(self.lastsaid[1]/1000*3.28,1))
                 message=self.target+vdistance+"feetat"+heading+"o'clock"
-                Popen([cmd_start+message+cmd_mid+cmd_end],shell=True)
-                playsound('message.mp3')
+                Popen(cmd_start+'"'+message+'"'+cmd_mid+cmd_end, shell=True)
+                Popen('message.mp3', shell=True)
               
                 said = 1
           
@@ -216,11 +216,11 @@ class Main:
         if self.pcl_converter is not None:
             self.pcl_converter.close_window()
     
-    def t2speech(self,message):
-        message=message
-        speech=gTTS(text=message)
-        speech.save('entry.mp3')
-        playsound('entry.mp3')        
+    # def t2speech(self,message):
+    #     message=message
+    #     speech=gTTS(text=message)
+    #     speech.save('message.mp3')
+    #     playsound('entry.mp3')        
     
     def calc_direction(self,z, x):
         z = round(z/1000*3.28,1)
