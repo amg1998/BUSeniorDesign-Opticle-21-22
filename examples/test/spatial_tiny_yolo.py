@@ -6,9 +6,7 @@ import numpy as np
 import time
 from datetime import datetime
 import open3d as o3d
-# import RPi.GPIO as GPIO
 from subprocess import Popen
-# import socket
 from depthai_setup import DepthAi
 from projector_3d import PointCloudVisualizer
 from collections import deque
@@ -19,40 +17,29 @@ from playsound import playsound
 
     
 
-
+rpi = 0
 
 start=datetime.now()
-#start_time=now.strftime("%H:%M:%S")
 
 cmd_start='gtts-cli '
 cmd_mid=' --output '
 cmd_end='message.mp3'
-'''
-Spatial Tiny-yolo example
-  Performs inference on RGB camera and retrieves spatial location coordinates: x,y,z relative to the center of depth map.
-  Can be used for tiny-yolo-v3 or tiny-yolo-v4 networks
-'''
 
-# setup socket
-# HOST = '155.41.122.253'
-# PORT = 2000
-# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# s.connect((HOST,PORT))
+if (rpi==1):
+    # setup socket
+    import socket
+    import RPi.GPIO as GPIO
 
-#setup PI
-# GPIO.setmode(GPIO.BOARD)
-# #motor1
-# GPIO.setup(8,GPIO.OUT)
-# pwm2 = GPIO.PWM(8, 100)
-# pwm2.start(0)
-# #motor2
-# GPIO.setup(10,GPIO.OUT)
-# pwm3 = GPIO.PWM(10, 100)
-# pwm3.start(0)
+    HOST = '155.41.122.253'
+    PORT = 2000
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((HOST,PORT))
 
-# GPIO.setup(12,GPIO.OUT)
-# pwm1=GPIO.PWM(12,100)
-# pwm1.start(0)
+    #setup PI
+    GPIO.setmode(GPIO.BOARD)
+    modeswitchpin=3
+    GPIO.setup(modeswitchpin, GPIO.IN)
+  
 
 
 class Main:
@@ -77,7 +64,7 @@ class Main:
         #     "teddy bear",     "hair drier", "toothbrush"
         # ]
         self.isstarted = False
-        self.pcl_converter = None
+        # self.pcl_converter = None
         self.target = "handle"
         self.confq = deque(maxlen=30)
         self.lastsaid = [0,0,0]
@@ -87,11 +74,9 @@ class Main:
     def run_yolo_pc(self):
         color = (255, 255, 255)
         speed=' -s' + '160'
-        said = 0
-        # isstarted = False
-        # pcl_converter = None
-        # vis = o3d.visualization.Visualizer()
-        # vis.create_window()
+        pcl_converter = None
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
         for frame, depthFrameColor, fps, depthFrame, pcFrame in self.depthai.yolo_det():
             for roiData in self.depthai.roiDatas:
                 roi = roiData.roi
@@ -134,7 +119,6 @@ class Main:
 
                         tempq = list(self.confq)
                         medvals = np.median(tempq, axis=0)
-                        # print(medvals[1])
                     
                 except:
                     label = detection.label
@@ -149,18 +133,18 @@ class Main:
             #push highest confidence & corresponding depth to queue
             self.confq.append([maxconf, maxconfdepth, maxconfx])
             # try:
+            # print(self.lastsaid, medvals)
             distdiff = abs(round(self.lastsaid[1]/1000*3.28,1)-round(medvals[1]/1000*3.28,1))
-            print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
+            # print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
             if(label==self.target and distdiff>self.epsDist and medvals[1]>0):
                 self.lastsaid = medvals
                 heading = self.calc_direction(medvals[1],medvals[2])
-                print("######SAID")
+                print("Notified User")
                 vdistance = str(round(self.lastsaid[1]/1000*3.28,1))
                 message=self.target+vdistance+"feetat"+heading+"o'clock"
                 Popen(cmd_start+'"'+message+'"'+cmd_mid+cmd_end, shell=True)
                 Popen('message.mp3', shell=True)
               
-                said = 1
           
             #cmd_start+self.target+vdistance+"feetat"+heading+"o'clock"+speed,shell=True
             cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
@@ -184,9 +168,9 @@ class Main:
             # median2 = cv2.medianBlur(median,5)
 
             
-            self.pcl_converter = PointCloudVisualizer(self.depthai.right_intrinsic, 640, 400)
+            pcl_converter = PointCloudVisualizer(self.depthai.right_intrinsic, 640, 400)
 
-            pcd = self.pcl_converter.rgbd_to_projection(median, right,False)
+            pcd = pcl_converter.rgbd_to_projection(median, right,False)
 
             #to get points within bounding box
             num_pts = oriented_bounding_box.get_point_indices_within_bounding_box(pcd.points)
@@ -197,7 +181,7 @@ class Main:
             # if not self.isstarted:
             #     vis.add_geometry(pcd)
             #     vis.add_geometry(oriented_bounding_box)
-            #     isstarted = True       
+            #     self.isstarted = True       
                         
             # else:
             #     vis.update_geometry(pcd)
@@ -207,20 +191,17 @@ class Main:
 
             if len(num_pts)>5000:
                 print("Obstacle")
-                # s.send(bytes('1','utf-8'))
+                if (rpi==1):
+                    s.send(bytes('1','utf-8'))
             else:
                 print("Nothing")
-                # s.send(bytes('0','utf-8'))
-        # del vis
+                if (rpi==1):
+                    s.send(bytes('0','utf-8'))
+
 
         if self.pcl_converter is not None:
             self.pcl_converter.close_window()
-    
-    # def t2speech(self,message):
-    #     message=message
-    #     speech=gTTS(text=message)
-    #     speech.save('message.mp3')
-    #     playsound('entry.mp3')        
+         
     
     def calc_direction(self,z, x):
         z = round(z/1000*3.28,1)
@@ -276,10 +257,12 @@ class Main:
             #     self.depthai.vis.update_renderer()
             if len(num_pts)>5000:
                 print("Obstacle")
-                # s.send(bytes('1','utf-8'))
+                if (rpi==1):
+                    s.send(bytes('1','utf-8'))
             else:
                 print("Nothing")
-                # s.send(bytes('0','utf-8'))
+                if (rpi==1):
+                    s.send(bytes('0','utf-8'))
 
         if self.pcl_converter is not None:
             self.pcl_converter.close_window()

@@ -17,8 +17,8 @@ class PointCloudVisualizer():
                                                                          intrinsic_matrix[1][1],
                                                                          intrinsic_matrix[0][2],
                                                                          intrinsic_matrix[1][2])
-        # self.vis = o3d.visualization.Visualizer()
-        # self.vis.create_window()
+        self.vis = o3d.visualization.Visualizer()
+        self.vis.create_window()
         self.isstarted = False
 
     def rgbd_to_projection(self, depth_map, rgb, is_rgb):
