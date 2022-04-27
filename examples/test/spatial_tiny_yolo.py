@@ -6,6 +6,7 @@ import numpy as np
 import time
 from datetime import datetime
 import open3d as o3d
+
 from subprocess import Popen
 from depthai_setup import DepthAi
 from projector_3d import PointCloudVisualizer
@@ -15,10 +16,7 @@ from gtts import *
 from playsound import playsound
 
 
-    
-
 rpi = 0
-
 start=datetime.now()
 
 cmd_start='gtts-cli '
