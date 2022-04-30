@@ -16,7 +16,7 @@ import speech_recognition as sr
 from gtts import *
 from playsound import playsound
 import os
-
+import RPi.GPIO as GPIO
 
 socket = 0
 start=datetime.now()
@@ -30,8 +30,6 @@ opensound = ""
 if (socket==1):
     # setup socket
     import socket
-    import RPi.GPIO as GPIO
-
     HOST = '172.20.10.11'
     PORT = 2000
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,7 +48,7 @@ class Main:
     def __init__(self):
         self.nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
         self.depthai = self.depthai_class(self.nnBlobPath)
-        self.labelMap = '''["", "door", "handle"]'''[
+        self.labelMap = [
              "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
              "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
              "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
@@ -65,7 +63,7 @@ class Main:
              "teddy bear",     "hair drier", "toothbrush"
          ]
         self.isstarted = False
-        # self.pcl_converter = None
+        # self.pcl_converter = Noner
         self.target = ""
         self.confq = deque(maxlen=30)
         self.lastsaid = [0,0,0]
@@ -195,11 +193,11 @@ class Main:
 
             if len(num_pts)>5000:
                 print("Obstacle")
-                if (rpi==1):
+                if (socket==1):
                     s.send(bytes('1','utf-8'))
             else:
                 print("Nothing")
-                if (rpi==1):
+                if (socket==1):
                     s.send(bytes('0','utf-8'))
             
             if (GPIO.input(modeswitchpin) == 1 and self.mode == 0):
@@ -234,6 +232,12 @@ class Main:
         while True:
             while True:
                 self.mode = 1
+                '''
+                self.target = "person"
+                print("target is person")
+                return
+                '''
+                
                 r = sr.Recognizer()
                 with sr.Microphone(device_index=6) as source:
                     print("You have entered the scanning mode:")
@@ -275,6 +279,7 @@ class Main:
                     print("error 2")
                     os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
                     break
+                
         #print("out")
 
     def run_pointcloud(self): 

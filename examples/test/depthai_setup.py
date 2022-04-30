@@ -7,7 +7,7 @@ import open3d as o3d
 
 class DepthAi:
     def create_pipeline(self, nnBlobPath):
-        yolo = 0
+        yolo = 1
         if yolo:
             print("creating YOLO pipeline")
         else:
