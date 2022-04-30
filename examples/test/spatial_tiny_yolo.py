@@ -18,7 +18,7 @@ from playsound import playsound
 import os
 
 
-rpi = 0
+socket = 0
 start=datetime.now()
 
 cmd_start='gtts-cli '
@@ -26,23 +26,21 @@ cmd_mid=' --output '
 cmd_end='message.mp3'
 scan_end ='scan.mp3'
 opensound = ""
-modeswitchpin=1
-mode = 1
 
-if (rpi==1):
+if (socket==1):
     # setup socket
     import socket
     import RPi.GPIO as GPIO
 
-    HOST = '155.41.122.253'
+    HOST = '172.20.10.11'
     PORT = 2000
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((HOST,PORT))
 
-    #setup PI
-    GPIO.setmode(GPIO.BOARD)
-    modeswitchpin=3
-    GPIO.setup(modeswitchpin, GPIO.IN)
+#setup PI
+GPIO.setmode(GPIO.BOARD)
+modeswitchpin=3
+GPIO.setup(modeswitchpin, GPIO.IN)    
   
 
 
@@ -50,29 +48,29 @@ class Main:
     depthai_class = DepthAi
 
     def __init__(self):
-        self.nnBlobPath = str((Path(__file__).parent / Path('../models/2classes_model.blob')).resolve().absolute())
+        self.nnBlobPath = str((Path(__file__).parent / Path('../models/yolo-v4-tiny-tf_openvino_2021.4_6shave.blob')).resolve().absolute())
         self.depthai = self.depthai_class(self.nnBlobPath)
-        self.labelMap = ["", "door", "handle"]
-        # [
-        #     "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
-        #     "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
-        #     "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
-        #     "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
-        #     "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
-        #     "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
-        #     "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
-        #     "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
-        #     "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
-        #     "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
-        #     "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
-        #     "teddy bear",     "hair drier", "toothbrush"
-        # ]
+        self.labelMap = '''["", "door", "handle"]'''[
+             "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
+             "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
+             "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
+             "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
+             "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
+             "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
+             "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
+             "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
+             "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
+             "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
+             "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
+             "teddy bear",     "hair drier", "toothbrush"
+         ]
         self.isstarted = False
         # self.pcl_converter = None
-        self.target = "handle"
+        self.target = ""
         self.confq = deque(maxlen=30)
         self.lastsaid = [0,0,0]
         self.epsDist = 1
+        self.mode = 0
 
 
     def run_yolo_pc(self):
@@ -82,83 +80,84 @@ class Main:
         vis = o3d.visualization.Visualizer()
         vis.create_window()
         for frame, depthFrameColor, fps, depthFrame, pcFrame in self.depthai.yolo_det():
-            for roiData in self.depthai.roiDatas:
-                roi = roiData.roi
-                roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
-                topLeft = roi.topLeft()
-                bottomRight = roi.bottomRight()
-                xmin = int(topLeft.x)
-                ymin = int(topLeft.y)
-                xmax = int(bottomRight.x)
-                ymax = int(bottomRight.y)
+            if (GPIO.input(modeswitchpin) == 1):
+                for roiData in self.depthai.roiDatas:
+                    roi = roiData.roi
+                    roi = roi.denormalize(depthFrameColor.shape[1], depthFrameColor.shape[0])
+                    topLeft = roi.topLeft()
+                    bottomRight = roi.bottomRight()
+                    xmin = int(topLeft.x)
+                    ymin = int(topLeft.y)
+                    xmax = int(bottomRight.x)
+                    ymax = int(bottomRight.y)
 
-                cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
+                    cv2.rectangle(depthFrameColor, (xmin, ymin), (xmax, ymax), color, cv2.FONT_HERSHEY_SCRIPT_SIMPLEX)
 
 
-            # If the frame is available, draw bounding boxes on it and show the frame
-            height = frame.shape[0]
-            width  = frame.shape[1]
-            maxconf = 0
-            maxconfdepth = 0
-            maxconfx = 0
-            medvals = [0,0,0]
-            label=""
-            for detection in self.depthai.detections:
- 
-                x1 = int(detection.xmin * width)
-                x2 = int(detection.xmax * width)
-                y1 = int(detection.ymin * height)
-                y2 = int(detection.ymax * height)
-                try:
-                    label = self.labelMap[detection.label]
+                # If the frame is available, draw bounding boxes on it and show the frame
+                height = frame.shape[0]
+                width  = frame.shape[1]
+                maxconf = 0
+                maxconfdepth = 0
+                maxconfx = 0
+                medvals = [0,0,0]
+                label=""
+                for detection in self.depthai.detections:
+    
+                    x1 = int(detection.xmin * width)
+                    x2 = int(detection.xmax * width)
+                    y1 = int(detection.ymin * height)
+                    y2 = int(detection.ymax * height)
+                    try:
+                        label = self.labelMap[detection.label]
 
-                    #check if a handle is detected
-                    if (label==self.target):
+                        #check if a object is detected
+                        if (label==self.target):
 
-                        #save highest confidence value and corresponding depth
-                        if detection.confidence>maxconf:
-                            maxconf = detection.confidence
-                            maxconfdepth = detection.spatialCoordinates.z
-                            maxconfx = detection.spatialCoordinates.x
+                            #save highest confidence value and corresponding depth
+                            if detection.confidence>maxconf:
+                                maxconf = detection.confidence
+                                maxconfdepth = detection.spatialCoordinates.z
+                                maxconfx = detection.spatialCoordinates.x
 
-                        tempq = list(self.confq)
-                        medvals = np.median(tempq, axis=0)
-                    
-                except:
-                    label = detection.label
-                cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, f"X: {int(detection.spatialCoordinates.x)} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, f"Y: {int(detection.spatialCoordinates.y)} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                            tempq = list(self.confq)
+                            medvals = np.median(tempq, axis=0)
+                        
+                    except:
+                        label = detection.label
+                    cv2.putText(frame, str(label), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, "{:.2f}".format(detection.confidence*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, f"X: {int(detection.spatialCoordinates.x)} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, f"Y: {int(detection.spatialCoordinates.y)} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, f"Z: {int(detection.spatialCoordinates.z)} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
 
-            #push highest confidence & corresponding depth to queue
-            self.confq.append([maxconf, maxconfdepth, maxconfx])
-            # try:
-            # print(self.lastsaid, medvals)
-            distdiff = abs(round(self.lastsaid[1]/1000*3.28,1)-round(medvals[1]/1000*3.28,1))
-            # print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
-            if(label==self.target and distdiff>self.epsDist and medvals[1]>0):
-                self.lastsaid = medvals
-                heading = self.calc_direction(medvals[1],medvals[2])
-                print("Notified User")
-                vdistance = str(round(self.lastsaid[1]/1000*3.28,1))
-                message=self.target+vdistance+"feetat"+heading+"o'clock"
-                Popen(cmd_start+'"'+message+'"'+cmd_mid+cmd_end, shell=True)
-                #Popen('message.mp3', shell=True)
-                os.system('mpg123 message.mp3')
-              
-          
-            #cmd_start+self.target+vdistance+"feetat"+heading+"o'clock"+speed,shell=True
-            cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
-            cv2.imshow("depth", depthFrameColor)
-            cv2.imshow("rgb", frame)
-            if cv2.waitKey(1) == ord('q'):
-                break
-
+                #push highest confidence & corresponding depth to queue
+                self.confq.append([maxconf, maxconfdepth, maxconfx])
+                # try:
+                # print(self.lastsaid, medvals)
+                distdiff = abs(round(self.lastsaid[1]/1000*3.28,1)-round(medvals[1]/1000*3.28,1))
+                # print(round(self.lastsaid[1]/1000*3.28,1),round(medvals[1]/1000*3.28,1))
+                if(label==self.target and distdiff>self.epsDist and medvals[1]>0):
+                    self.lastsaid = medvals
+                    heading = self.calc_direction(medvals[1],medvals[2])
+                    print("Notified User")
+                    vdistance = str(round(self.lastsaid[1]/1000*3.28,1))
+                    message=self.target+vdistance+"feetat"+heading+"o'clock"
+                    Popen(cmd_start+'"'+message+'"'+cmd_mid+cmd_end, shell=True)
+                    #Popen('message.mp3', shell=True)
+                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/message.mp3")
+                
             
+                #cmd_start+self.target+vdistance+"feetat"+heading+"o'clock"+speed,shell=True
+                cv2.putText(frame, "NN fps: {:.2f}".format(fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
+                cv2.imshow("depth", depthFrameColor)
+                cv2.imshow("rgb", frame)
+                if cv2.waitKey(1) == ord('q'):
+                    break
+
+            # Point Cloud
             corners = np.asarray([[-0.5,-1.0,0.35],[0.5,-1.0,0.35],[0.5,1.0,0.35],[-0.5,1.0,0.35],[-0.5,-1.0,1.7],[0.5,-1.0,1.7],[0.5,1.0,1.7],[-0.5,1.0,1.7]])
 
             bounds = corners.astype("float64")
@@ -202,6 +201,11 @@ class Main:
                 print("Nothing")
                 if (rpi==1):
                     s.send(bytes('0','utf-8'))
+            
+            if (GPIO.input(modeswitchpin) == 1 and self.mode == 0):
+                self.get_target()
+            if (GPIO.input(modeswitchpin) == 0):
+                self.mode = 0
 
 
         if self.pcl_converter is not None:
@@ -228,44 +232,50 @@ class Main:
     
     def get_target(self):
         while True:
-            saidtext=''
-            if (modeswitchpin == 1 and mode == 1):
+            while True:
+                self.mode = 1
                 r = sr.Recognizer()
                 with sr.Microphone(device_index=6) as source:
                     print("You have entered the scanning mode:")
                     prompt='Say'+'object'
                     #Popen([s_cmd_start+prompt+speed+s_cmd_end],shell=True)
-                    Popen(opensound+'sayobject.mp3', shell=True)
+                    #Popen(opensound+'sayobject.mp3', shell=True)
+                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/sayobject.mp3")
                     audio=r.adjust_for_ambient_noise(source)
                     audio=r.listen(source)
                 try:
-                    text = "handle"
-                    # r.recognize_google(audio)
+                    text = r.recognize_google(audio)
 
                     print("You said: " + text)
                     if (text not in self.labelMap):
                         errormessage='Try'+'again'
                         #Popen([s_cmd_start+errormessage+speed+s_cmd_end],shell=True)
-                        Popen(opensound+'tryagain.mp3', shell=True)
+                        #Popen(opensound+'tryagain.mp3', shell=True)
+                        os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
                         break
                     else:
-                        saidtext=text
-                        confirm='Scanning'+'for'
+                        self.target=text
+                        #confirm='Scanning'+'for'
                         #Popen([s_cmd_start+confirm+saidtext+speed+s_cmd_end],shell=True)
                         scanmessage = 'Scanning '+'for '+text
                         #print(cmd_start+'"'+scanmessage+'"'+' '+cmd_mid+scan_end)
                         Popen(cmd_start+'"'+scanmessage+'"'+' '+cmd_mid+scan_end, shell=True)
-                        Popen(opensound+'scan.mp3', shell=True)
+                        #Popen(opensound+'scan.mp3', shell=True)
+                        os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/scan.mp3")
+                        return
 
                 except sr.UnknownValueError:
                     print('Sorry could not recognize voice')
                     errormessage='Try'+'again'
                     #Popen([s_cmd_start+errormessage+speed+s_cmd_end],shell=True)
-                    Popen(opensound+'tryagain.mp3', shell=True)
+                    #Popen(opensound+'tryagain.mp3', shell=True)
+                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
                     break
                 except sr.RequestError as e:
                     print("error 2")
-        print("out")
+                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
+                    break
+        #print("out")
 
     def run_pointcloud(self): 
 
@@ -302,16 +312,19 @@ class Main:
             #     self.depthai.vis.update_renderer()
             if len(num_pts)>5000:
                 print("Obstacle")
-                if (rpi==1):
+                if (socket==1):
                     s.send(bytes('1','utf-8'))
             else:
                 print("Nothing")
-                if (rpi==1):
+                if (socket==1):
                     s.send(bytes('0','utf-8'))
 
         if self.pcl_converter is not None:
             self.pcl_converter.close_window()
 
 if __name__ == '__main__':
-
-    Main().get_target()
+    if (GPIO.input(modeswitchpin) == 1):
+        Main().get_target()
+        Main().run_yolo_pc()
+    else:
+        Main().run_yolo_pc()
