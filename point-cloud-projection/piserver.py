@@ -8,7 +8,7 @@ GPIO.setup(8,GPIO.OUT)
 pwm = GPIO.PWM(8, 100)
 pwm.start(0)
 
-HOST_IP = '155.41.35.46'
+HOST_IP = '172.20.10.11'
 PORT = 2000
 BUFFER_SIZE = 20
 
@@ -26,7 +26,7 @@ conn, addr = s.accept()
 print('Connection address:', addr)
 while True:
     data = conn.recv(BUFFER_SIZE)
-    if data == '1':
+    if data == bytes('1','utf-8'):
         pwm.ChangeDutyCycle(100)
         print('Vibrating')
     else:
