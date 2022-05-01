@@ -230,55 +230,51 @@ class Main:
     
     def get_target(self):
         while True:
-            while True:
-                self.mode = 1
-                '''
-                self.target = "person"
-                print("target is person")
-                return
-                '''
-                
-                r = sr.Recognizer()
-                with sr.Microphone(device_index=6) as source:
-                    print("You have entered the scanning mode:")
-                    prompt='Say'+'object'
-                    #Popen([s_cmd_start+prompt+speed+s_cmd_end],shell=True)
-                    #Popen(opensound+'sayobject.mp3', shell=True)
-                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/sayobject.mp3")
-                    audio=r.adjust_for_ambient_noise(source)
-                    audio=r.listen(source)
-                try:
-                    text = r.recognize_google(audio)
+            self.mode = 1
+            '''
+            self.target = "person"
+            print("target is person")
+            return
+            '''
+            
+            r = sr.Recognizer()
+            with sr.Microphone(device_index=6) as source:
+                print("You have entered the scanning mode:")
+                prompt='Say'+'object'
+                #Popen([s_cmd_start+prompt+speed+s_cmd_end],shell=True)
+                #Popen(opensound+'sayobject.mp3', shell=True)
+                os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/sayobject.mp3")
+                audio=r.adjust_for_ambient_noise(source)
+                audio=r.listen(source)
+            try:
+                text = r.recognize_google(audio)
 
-                    print("You said: " + text)
-                    if (text not in self.labelMap):
-                        errormessage='Try'+'again'
-                        #Popen([s_cmd_start+errormessage+speed+s_cmd_end],shell=True)
-                        #Popen(opensound+'tryagain.mp3', shell=True)
-                        os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
-                        break
-                    else:
-                        self.target=text
-                        #confirm='Scanning'+'for'
-                        #Popen([s_cmd_start+confirm+saidtext+speed+s_cmd_end],shell=True)
-                        scanmessage = 'Scanning '+'for '+text
-                        #print(cmd_start+'"'+scanmessage+'"'+' '+cmd_mid+scan_end)
-                        Popen(cmd_start+'"'+scanmessage+'"'+' '+cmd_mid+scan_end, shell=True)
-                        #Popen(opensound+'scan.mp3', shell=True)
-                        os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/scan.mp3")
-                        return
-
-                except sr.UnknownValueError:
-                    print('Sorry could not recognize voice')
+                print("You said: " + text)
+                if (text not in self.labelMap):
                     errormessage='Try'+'again'
                     #Popen([s_cmd_start+errormessage+speed+s_cmd_end],shell=True)
                     #Popen(opensound+'tryagain.mp3', shell=True)
                     os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
-                    break
-                except sr.RequestError as e:
-                    print("error 2")
-                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
-                    break
+                else:
+                    self.target=text
+                    #confirm='Scanning'+'for'
+                    #Popen([s_cmd_start+confirm+saidtext+speed+s_cmd_end],shell=True)
+                    scanmessage = 'Scanning '+'for '+text
+                    #print(cmd_start+'"'+scanmessage+'"'+' '+cmd_mid+scan_end)
+                    Popen(cmd_start+'"'+scanmessage+'"'+' '+cmd_mid+scan_end, shell=True)
+                    #Popen(opensound+'scan.mp3', shell=True)
+                    os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/scan.mp3")
+                    return
+
+            except sr.UnknownValueError:
+                print('Sorry could not recognize voice')
+                errormessage='Try'+'again'
+                #Popen([s_cmd_start+errormessage+speed+s_cmd_end],shell=True)
+                #Popen(opensound+'tryagain.mp3', shell=True)
+                os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
+            except sr.RequestError as e:
+                print("error 2")
+                os.system("mpg123 " + "/home/pi/BUSeniorDesign-Opticle-21-22/examples/test/tryagain.mp3")
                 
         #print("out")
 
